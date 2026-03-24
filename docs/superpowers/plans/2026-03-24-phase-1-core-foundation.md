@@ -570,7 +570,7 @@ Expected: New tests FAIL, previous patent tests still PASS.
 # core/models/application.py
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import StrEnum
 from uuid import UUID, uuid4
 
@@ -630,7 +630,7 @@ class DraftApplication(BaseModel):
     drawings_description: str | None = None
     ads_data: dict | None = None
     review_notes: list[ReviewNote] = Field(default_factory=list)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("abstract")
     @classmethod
@@ -1013,15 +1013,81 @@ class OpenAICompatProvider(LLMProvider):
         return await self.generate(prompt, system, max_tokens, temperature=0.0)
 ```
 
-- [ ] **Step 7: Run tests to verify they pass**
+- [ ] **Step 7: Write openai_compat tests**
+
+```python
+# tests/test_llm/test_openai_compat.py
+import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+from core.llm.openai_compat import OpenAICompatProvider
+from core.llm.base import LLMResponse
+
+
+@pytest.fixture
+def ollama_provider():
+    with patch("core.llm.openai_compat.AsyncOpenAI") as mock_cls:
+        mock_client = MagicMock()
+        mock_cls.return_value = mock_client
+        provider = OpenAICompatProvider(
+            base_url="http://10.0.4.93:11434/v1",
+            model="llama3.1",
+        )
+        provider._client = mock_client
+        yield provider, mock_client
+
+
+@pytest.mark.asyncio
+async def test_openai_compat_init(ollama_provider):
+    provider, _ = ollama_provider
+    assert provider.model == "llama3.1"
+    assert provider.provider_name == "openai_compat"
+
+
+@pytest.mark.asyncio
+async def test_openai_compat_generate(ollama_provider):
+    provider, mock_client = ollama_provider
+    mock_choice = MagicMock()
+    mock_choice.message.content = "Analysis result"
+    mock_response = MagicMock()
+    mock_response.choices = [mock_choice]
+    mock_response.model = "llama3.1"
+    mock_response.usage.total_tokens = 150
+
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+    result = await provider.generate("Analyze this patent")
+
+    assert isinstance(result, LLMResponse)
+    assert result.content == "Analysis result"
+    assert result.tokens_used == 150
+
+
+@pytest.mark.asyncio
+async def test_generate_with_thinking_falls_back(ollama_provider):
+    """OpenAI-compat providers fall back to standard generate for thinking."""
+    provider, mock_client = ollama_provider
+    mock_choice = MagicMock()
+    mock_choice.message.content = "Fallback result"
+    mock_response = MagicMock()
+    mock_response.choices = [mock_choice]
+    mock_response.model = "llama3.1"
+    mock_response.usage.total_tokens = 100
+
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+    result = await provider.generate_with_thinking("Analyze this")
+
+    assert result.content == "Fallback result"
+    assert result.thinking is None
+```
+
+- [ ] **Step 8: Run tests to verify they pass**
 
 ```bash
 pytest tests/test_llm/ -v
 ```
 
-Expected: All tests PASS.
+Expected: All tests PASS (base, claude, openai_compat, registry).
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add core/llm/ tests/test_llm/
@@ -1396,28 +1462,41 @@ git commit -m "feat: storage abstraction with SQLite local fallback"
 
 - [ ] **Step 1: Create db/init.sql**
 
-Copy the full schema from the spec (Appendix A) — all 8 tables, RLS policies, and composite indexes. This file is run by Supabase Postgres on first startup.
+This file is run by Supabase Postgres on first startup. Copy **lines 603-738** from the design spec (`docs/superpowers/specs/2026-03-24-memoriant-patent-platform-design.md`, Appendix A) verbatim into `db/init.sql`. This includes all 8 tables, RLS, and indexes.
+
+Then add the missing RLS policies for all tables (the spec only shows one as an example):
 
 ```sql
--- db/init.sql
--- Memoriant Patent Platform — Database Schema
--- Run by Supabase Postgres on initialization
+-- Append these after the existing RLS ENABLE statements in the spec SQL:
 
--- Profiles (extends Supabase auth.users)
-CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    display_name TEXT,
-    role TEXT DEFAULT 'user',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- (Include all 8 tables exactly as specified in Appendix A)
--- (Include all RLS policies)
--- (Include all composite indexes)
+CREATE POLICY "Users own data" ON public.profiles
+    FOR ALL USING (auth.uid() = id);
+CREATE POLICY "Users own data" ON public.patent_projects
+    FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own search results" ON public.search_results
+    FOR ALL USING (
+        project_id IN (SELECT id FROM public.patent_projects WHERE user_id = auth.uid())
+    );
+CREATE POLICY "Users own drafts" ON public.draft_applications
+    FOR ALL USING (
+        project_id IN (SELECT id FROM public.patent_projects WHERE user_id = auth.uid())
+    );
+CREATE POLICY "Users own pipeline runs" ON public.pipeline_runs
+    FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own file history" ON public.file_history
+    FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own configs" ON public.user_configs
+    FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users own api keys" ON public.api_keys
+    FOR ALL USING (auth.uid() = user_id);
 ```
 
-Full content: use the complete SQL from the design spec Appendix A verbatim.
+Verify the SQL is valid:
+
+```bash
+# Quick syntax check (requires psql installed locally, or skip if not available)
+psql -f db/init.sql --set ON_ERROR_STOP=1 "postgresql://localhost/template1" 2>&1 | head -5 || echo "Syntax check skipped — will validate on Docker startup"
+```
 
 - [ ] **Step 2: Create Dockerfile for patent-api**
 
@@ -1475,9 +1554,60 @@ Use the official Supabase self-hosted docker-compose as a base (from `github.com
       - ALL
 ```
 
-Note: The full Supabase docker-compose.yml is lengthy (~200 lines). Clone from `github.com/supabase/supabase/docker/docker-compose.yml` and append our services. Do not write it from scratch.
+To create the full docker-compose.yml:
 
-- [ ] **Step 4: Create the FastAPI health stub**
+```bash
+# 1. Download the official Supabase self-hosted docker-compose as a starting point
+curl -LO https://raw.githubusercontent.com/supabase/supabase/master/docker/docker-compose.yml
+curl -LO https://raw.githubusercontent.com/supabase/supabase/master/docker/.env.example
+# Rename their .env.example to avoid conflicts
+mv .env.example .env.supabase.example
+
+# 2. Append our services (patent-api, qdrant) to the downloaded docker-compose.yml
+# 3. Add our networks (internal, external) to the networks section
+# 4. Add volume mount for db/init.sql:
+#    supabase-db:
+#      volumes:
+#        - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+# 5. Add security hardening to ALL services (user, read_only, cap_drop, security_opt)
+# 6. Merge Supabase env vars into our .env.example
+```
+
+After merging, validate:
+
+```bash
+docker compose config > /dev/null && echo "docker-compose.yml is valid"
+```
+
+- [ ] **Step 4: Write health endpoint test (TDD — test first)**
+
+```python
+# tests/test_api/test_health.py
+import pytest
+from httpx import AsyncClient, ASGITransport
+from api.main import app
+
+
+@pytest.mark.asyncio
+async def test_health_endpoint():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert data["version"] == "0.1.0"
+```
+
+- [ ] **Step 5: Run test to verify it fails**
+
+```bash
+pytest tests/test_api/test_health.py -v
+```
+
+Expected: FAIL — `api.main` has no `app` or no `/health` route.
+
+- [ ] **Step 6: Write the FastAPI health stub**
 
 ```python
 # api/main.py
@@ -1501,27 +1631,7 @@ async def health():
     }
 ```
 
-- [ ] **Step 5: Write health endpoint test**
-
-```python
-# tests/test_api/test_health.py
-import pytest
-from httpx import AsyncClient, ASGITransport
-from api.main import app
-
-
-@pytest.mark.asyncio
-async def test_health_endpoint():
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/health")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "healthy"
-    assert data["version"] == "0.1.0"
-```
-
-- [ ] **Step 6: Run test to verify it passes**
+- [ ] **Step 7: Run test to verify it passes**
 
 ```bash
 pytest tests/test_api/test_health.py -v
@@ -1529,7 +1639,7 @@ pytest tests/test_api/test_health.py -v
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add db/ docker-compose.yml Dockerfile api/main.py tests/test_api/
@@ -1706,26 +1816,35 @@ from core.storage.supabase_pg import SupabaseStorage
 @pytest.fixture
 def supabase_storage():
     with patch("core.storage.supabase_pg.asyncpg") as mock_asyncpg:
-        mock_pool = AsyncMock()
+        mock_pool = MagicMock()
         mock_asyncpg.create_pool = AsyncMock(return_value=mock_pool)
         storage = SupabaseStorage(dsn="postgresql://test:test@localhost/test")
         storage._pool = mock_pool
-        yield storage, mock_pool
+
+        # Mock pool.acquire() as an async context manager
+        mock_conn = AsyncMock()
+        mock_conn.execute = AsyncMock()
+        mock_conn.fetchrow = AsyncMock(return_value=None)
+        mock_conn.fetch = AsyncMock(return_value=[])
+
+        context_manager = AsyncMock()
+        context_manager.__aenter__ = AsyncMock(return_value=mock_conn)
+        context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_pool.acquire.return_value = context_manager
+
+        yield storage, mock_conn
 
 
 @pytest.mark.asyncio
 async def test_create_project(supabase_storage):
-    storage, mock_pool = supabase_storage
-    mock_conn = AsyncMock()
-    mock_conn.fetchval = AsyncMock(return_value="test-uuid")
-    mock_pool.acquire = AsyncMock(return_value=mock_conn)
-    mock_conn.__aenter__ = AsyncMock(return_value=mock_conn)
-    mock_conn.__aexit__ = AsyncMock(return_value=None)
+    storage, mock_conn = supabase_storage
 
     project_id = await storage.create_project(
         user_id="user-123", title="Test", description="Test invention"
     )
-    assert project_id == "test-uuid"
+    # Returns a UUID string (generated internally, not from DB)
+    assert len(project_id) == 36  # UUID format
+    mock_conn.execute.assert_called_once()
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
