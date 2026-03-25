@@ -139,3 +139,68 @@ class TestRateLimitUncoveredBranches:
                     headers={"Authorization": f"Bearer {token}"},
                 )
         assert resp.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# New dependency functions added for route implementations (Task 8)
+# ---------------------------------------------------------------------------
+
+class TestNewDeps:
+    def test_get_aggregator_returns_search_aggregator(self):
+        from api.deps import get_aggregator
+        from core.search.aggregator import SearchAggregator
+        agg = get_aggregator()
+        assert isinstance(agg, SearchAggregator)
+
+    def test_get_analyzers_returns_empty_dict(self):
+        from api.deps import get_analyzers
+        result = get_analyzers()
+        assert isinstance(result, dict)
+        assert result == {}
+
+    def test_get_drafter_returns_provisional_drafter(self):
+        from api.deps import get_drafter
+        from core.drafting.provisional import ProvisionalDrafter
+        drafter = get_drafter()
+        assert isinstance(drafter, ProvisionalDrafter)
+
+    def test_get_pipeline_returns_patent_pipeline(self):
+        from api.deps import get_pipeline
+        from core.pipeline import PatentPipeline
+        pipeline = get_pipeline()
+        assert isinstance(pipeline, PatentPipeline)
+
+
+# ---------------------------------------------------------------------------
+# Lifespan coverage — trigger startup + shutdown via app lifespan context
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_app_lifespan_fires_startup_and_shutdown():
+    """Exercise the lifespan context manager to cover the startup/shutdown log lines."""
+    from api.main import lifespan, app
+    # Directly enter/exit the lifespan context manager to cover lines 19-21
+    async with lifespan(app):
+        pass  # startup and shutdown both execute
+
+
+# ---------------------------------------------------------------------------
+# NoopLLM raise coverage in get_drafter and get_pipeline
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_noop_llm_in_drafter_raises():
+    """The NoopLLM.generate inside get_drafter raises RuntimeError when called."""
+    from api.deps import get_drafter
+    drafter = get_drafter()
+    with pytest.raises(Exception):
+        await drafter.llm_provider.generate("test prompt")
+
+
+@pytest.mark.asyncio
+async def test_noop_llm_in_pipeline_raises():
+    """The NoopLLM.generate inside get_pipeline raises RuntimeError when called."""
+    from api.deps import get_pipeline
+    pl = get_pipeline()
+    with pytest.raises(Exception):
+        await pl._llm_provider.generate("test prompt")

@@ -46,3 +46,43 @@ def get_config() -> UserConfig:
     config = UserConfig(llm=llm, search=search, embedding=embedding, storage=storage)
     logger.debug("deps.config_loaded", provider=llm.provider, model=llm.model)
     return config
+
+
+def get_aggregator():
+    """Build a default SearchAggregator with no providers (no-op in tests; override in prod)."""
+    from core.search.aggregator import SearchAggregator
+    return SearchAggregator(providers=[])
+
+
+def get_analyzers() -> dict:
+    """Return a dict mapping check name → AnalysisModule (empty by default; override in tests)."""
+    return {}
+
+
+def get_drafter():
+    """Return a provisional drafter stub (no real LLM; override in tests/prod)."""
+    from core.drafting.provisional import ProvisionalDrafter
+
+    class _NoopLLM:
+        async def generate(self, *args, **kwargs):
+            raise RuntimeError("No LLM configured — inject via dependency_overrides")
+
+    return ProvisionalDrafter(llm_provider=_NoopLLM())  # type: ignore[arg-type]
+
+
+def get_pipeline():
+    """Return a PatentPipeline instance (no-op config; override in tests/prod)."""
+    from core.pipeline import PatentPipeline
+    from core.search.aggregator import SearchAggregator
+    from core.drafting.provisional import ProvisionalDrafter
+
+    class _NoopLLM:
+        async def generate(self, *args, **kwargs):
+            raise RuntimeError("No LLM configured — inject via dependency_overrides")
+
+    return PatentPipeline(
+        llm_provider=_NoopLLM(),  # type: ignore[arg-type]
+        search_aggregator=SearchAggregator(providers=[]),
+        analysis_modules=[],
+        drafter=ProvisionalDrafter(llm_provider=_NoopLLM()),  # type: ignore[arg-type]
+    )
