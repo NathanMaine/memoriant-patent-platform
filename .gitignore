@@ -10,3 +10,5 @@ build/
 .coverage
 htmlcov/
 node_modules/
+web/node_modules/
+web/dist/
