@@ -2,8 +2,11 @@ from __future__ import annotations
 import json
 from uuid import uuid4
 import aiosqlite
+import structlog
 from core.models.patent import SearchResult
 from core.storage.base import StorageProvider
+
+logger = structlog.get_logger(__name__)
 
 
 class SQLiteStorage(StorageProvider):
@@ -14,6 +17,7 @@ class SQLiteStorage(StorageProvider):
     async def initialize(self) -> None:
         self._db = await aiosqlite.connect(self._db_path)
         self._db.row_factory = aiosqlite.Row
+        logger.info("storage.sqlite.initialized", db_path=self._db_path)
         await self._db.executescript("""
             CREATE TABLE IF NOT EXISTS patent_projects (
                 id TEXT PRIMARY KEY,
@@ -55,6 +59,7 @@ class SQLiteStorage(StorageProvider):
             (project_id, user_id, title, description),
         )
         await self._db.commit()
+        logger.info("storage.project.created", project_id=project_id)
         return project_id
 
     async def get_project(self, project_id: str) -> dict | None:
@@ -82,6 +87,7 @@ class SQLiteStorage(StorageProvider):
             ),
         )
         await self._db.commit()
+        logger.info("storage.search_result.saved", result_id=result_id, project_id=project_id)
         return result_id
 
     async def list_search_results(self, project_id: str) -> list[dict]:

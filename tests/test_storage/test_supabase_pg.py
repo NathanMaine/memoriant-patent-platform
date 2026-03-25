@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from core.storage.supabase_pg import SupabaseStorage
+from core.models.patent import SearchResult, SearchStrategy, Inventor, Assignee
 
 
 @pytest.fixture
@@ -53,3 +54,54 @@ async def test_list_search_results_empty(supabase_storage):
 
     results = await storage.list_search_results("project-id")
     assert results == []
+
+
+@pytest.mark.asyncio
+async def test_initialize_creates_pool():
+    with patch("core.storage.supabase_pg.asyncpg") as mock_asyncpg:
+        mock_pool = MagicMock()
+        mock_asyncpg.create_pool = AsyncMock(return_value=mock_pool)
+        storage = SupabaseStorage(dsn="postgresql://test:test@localhost/test")
+        await storage.initialize()
+        mock_asyncpg.create_pool.assert_called_once_with("postgresql://test:test@localhost/test")
+        assert storage._pool is mock_pool
+
+
+@pytest.mark.asyncio
+async def test_close_calls_pool_close():
+    with patch("core.storage.supabase_pg.asyncpg"):
+        storage = SupabaseStorage(dsn="postgresql://test:test@localhost/test")
+        mock_pool = AsyncMock()
+        storage._pool = mock_pool
+        await storage.close()
+        mock_pool.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_close_with_no_pool():
+    storage = SupabaseStorage(dsn="postgresql://test:test@localhost/test")
+    # _pool is None — should not raise
+    await storage.close()
+
+
+@pytest.mark.asyncio
+async def test_save_search_result(supabase_storage):
+    storage, mock_conn = supabase_storage
+    mock_conn.execute = AsyncMock()
+
+    result = SearchResult(
+        patent_id="US11234567",
+        title="Novel Invention",
+        abstract="A useful abstract.",
+        inventors=[Inventor(first="Jane", last="Doe")],
+        assignees=[Assignee(organization="Acme Corp")],
+        cpc_codes=["G06F 40/30"],
+        relevance_score=0.92,
+        relevance_notes="Highly relevant",
+        provider="google_patents",
+        strategy=SearchStrategy.KEYWORD,
+    )
+
+    result_id = await storage.save_search_result("project-abc", result)
+    assert result_id == str(result.id)
+    mock_conn.execute.assert_called_once()

@@ -47,3 +47,38 @@ async def test_search_returns_results(qdrant_storage):
     assert len(results) == 1
     assert results[0]["patent_id"] == "US11234567"
     assert results[0]["score"] == 0.95
+
+
+@pytest.mark.asyncio
+async def test_search_with_filters(qdrant_storage):
+    storage, mock_client = qdrant_storage
+    mock_point = MagicMock()
+    mock_point.id = "filtered-id"
+    mock_point.score = 0.88
+    mock_point.payload = {"patent_id": "US99887766", "chunk_type": "abstract"}
+    mock_client.query_points = AsyncMock(return_value=MagicMock(points=[mock_point]))
+
+    results = await storage.search(
+        query_vector=[0.2] * 1536, limit=3, filters={"chunk_type": "abstract"}
+    )
+    assert len(results) == 1
+    assert results[0]["patent_id"] == "US99887766"
+    call_kwargs = mock_client.query_points.call_args.kwargs
+    assert call_kwargs["query_filter"] is not None
+
+
+@pytest.mark.asyncio
+async def test_close(qdrant_storage):
+    storage, mock_client = qdrant_storage
+    mock_client.close = AsyncMock()
+    await storage.close()
+    mock_client.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_initialize_skips_creation_when_collection_exists(qdrant_storage):
+    storage, mock_client = qdrant_storage
+    mock_client.collection_exists = AsyncMock(return_value=True)
+    mock_client.create_collection = AsyncMock()
+    await storage.initialize(dimensions=1536)
+    mock_client.create_collection.assert_not_called()

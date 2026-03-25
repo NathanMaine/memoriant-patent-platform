@@ -1,5 +1,8 @@
 from __future__ import annotations
 from qdrant_client import AsyncQdrantClient, models
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 COLLECTION_NAME = "patent_embeddings"
 
@@ -20,6 +23,7 @@ class QdrantStorage:
                     distance=models.Distance.COSINE,
                 ),
             )
+        logger.info("storage.qdrant.initialized", collection=COLLECTION_NAME, dimensions=dimensions)
 
     async def upsert(self, point_id: str, vector: list[float], payload: dict) -> None:
         await self._client.upsert(
@@ -28,10 +32,12 @@ class QdrantStorage:
                 models.PointStruct(id=point_id, vector=vector, payload=payload),
             ],
         )
+        logger.info("storage.qdrant.upsert", point_id=point_id)
 
     async def search(
         self, query_vector: list[float], limit: int = 10, filters: dict | None = None,
     ) -> list[dict]:
+        logger.info("storage.qdrant.search", limit=limit, has_filters=bool(filters))
         query_filter = None
         if filters:
             conditions = [

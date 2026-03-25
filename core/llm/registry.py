@@ -1,7 +1,10 @@
 from __future__ import annotations
+import structlog
 from core.llm.base import LLMProvider
 from core.llm.claude import ClaudeProvider
 from core.llm.openai_compat import OpenAICompatProvider
+
+logger = structlog.get_logger(__name__)
 
 _PROVIDERS: dict[str, type[LLMProvider]] = {
     "claude": ClaudeProvider,
@@ -17,6 +20,7 @@ class LLMRegistry:
         cls = _PROVIDERS.get(provider)
         if cls is None:
             raise ValueError(f"Unknown LLM provider: {provider}")
+        logger.info("llm.registry.create", provider=provider)
         return cls(**kwargs)
 
     @staticmethod

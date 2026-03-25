@@ -2,8 +2,11 @@ from __future__ import annotations
 import json
 from uuid import uuid4
 import asyncpg
+import structlog
 from core.models.patent import SearchResult
 from core.storage.base import StorageProvider
+
+logger = structlog.get_logger(__name__)
 
 
 class SupabaseStorage(StorageProvider):
@@ -13,10 +16,12 @@ class SupabaseStorage(StorageProvider):
 
     async def initialize(self) -> None:
         self._pool = await asyncpg.create_pool(self._dsn)
+        logger.info("storage.postgres.initialized", dsn_hint=self._dsn[:20])
 
     async def close(self) -> None:
         if self._pool:
             await self._pool.close()
+            logger.info("storage.postgres.closed")
 
     async def create_project(self, user_id: str, title: str, description: str, **kwargs) -> str:
         project_id = str(uuid4())
@@ -26,6 +31,7 @@ class SupabaseStorage(StorageProvider):
                    VALUES ($1, $2, $3, $4)""",
                 project_id, user_id, title, description,
             )
+        logger.info("storage.project.created", project_id=project_id)
         return project_id
 
     async def get_project(self, project_id: str) -> dict | None:
@@ -51,6 +57,7 @@ class SupabaseStorage(StorageProvider):
                 json.dumps(result.cpc_codes),
                 result.relevance_score, result.relevance_notes, result.strategy.value,
             )
+        logger.info("storage.search_result.saved", result_id=result_id, project_id=project_id)
         return result_id
 
     async def list_search_results(self, project_id: str) -> list[dict]:
