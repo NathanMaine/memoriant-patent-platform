@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePatentSearch, type SearchResult } from '../hooks/usePatentSearch';
 import { PatentCard } from '../components/PatentCard';

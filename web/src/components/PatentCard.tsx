@@ -1,4 +1,3 @@
-import React from 'react';
 
 export type PatentStatus = 'draft' | 'in_progress' | 'filed' | 'granted' | 'abandoned' | 'clear' | 'caution' | 'conflict';
 

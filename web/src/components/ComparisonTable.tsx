@@ -1,4 +1,3 @@
-import React from 'react';
 
 export type OverlapLevel = 'none' | 'partial' | 'full';
 

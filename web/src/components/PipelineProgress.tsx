@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 
 export type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 
@@ -64,7 +64,7 @@ export function PipelineProgress({ steps, progress, currentStage }: PipelineProg
     <div className="w-full">
       <div className="flex items-center">
         {steps.map((step, i) => (
-          <React.Fragment key={step.key}>
+          <Fragment key={step.key}>
             <div className="flex flex-col items-center">
               <StepIcon status={step.status} index={i} />
               <span
@@ -92,7 +92,7 @@ export function PipelineProgress({ steps, progress, currentStage }: PipelineProg
                 }`}
               />
             )}
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
 
