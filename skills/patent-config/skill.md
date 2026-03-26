@@ -1,6 +1,6 @@
 ---
 name: patent-config
-description: Configure the Memoriant Patent Platform — LLM provider, search providers, API keys, and connection mode (API-connected vs standalone).
+description: "v1.0.0 — Configure the Memoriant Patent Platform — LLM provider, search providers, API keys, and connection mode (API-connected vs standalone)."
 ---
 
 # Patent Config Skill
@@ -353,3 +353,7 @@ To configure the platform, specify:
 4. **Search preferences** — which providers to enable
 
 The skill will generate or update `~/.memoriant-patent/config.yaml`, set correct file permissions, and verify connectivity to each configured provider.
+
+---
+## Version History
+- **v1.0.0** (2026-03-25) — Initial release

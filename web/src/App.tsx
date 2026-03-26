@@ -8,6 +8,7 @@ import { NewPatent } from './pages/NewPatent';
 import { SearchResults } from './pages/SearchResults';
 import { DraftEditor } from './pages/DraftEditor';
 import { Settings } from './pages/Settings';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const DISCLAIMER_KEY = 'memoriant_disclaimer_dismissed';
 const DISCLAIMER_TEXT =
@@ -115,11 +116,11 @@ function App() {
       <AppShell>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
-          <Route path="/new" element={<RequireAuth><NewPatent /></RequireAuth>} />
-          <Route path="/search/:id" element={<RequireAuth><SearchResults /></RequireAuth>} />
-          <Route path="/draft/:id" element={<RequireAuth><DraftEditor /></RequireAuth>} />
-          <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+          <Route path="/" element={<RequireAuth><ErrorBoundary><Dashboard /></ErrorBoundary></RequireAuth>} />
+          <Route path="/new" element={<RequireAuth><ErrorBoundary><NewPatent /></ErrorBoundary></RequireAuth>} />
+          <Route path="/search/:id" element={<RequireAuth><ErrorBoundary><SearchResults /></ErrorBoundary></RequireAuth>} />
+          <Route path="/draft/:id" element={<RequireAuth><ErrorBoundary><DraftEditor /></ErrorBoundary></RequireAuth>} />
+          <Route path="/settings" element={<RequireAuth><ErrorBoundary><Settings /></ErrorBoundary></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell>

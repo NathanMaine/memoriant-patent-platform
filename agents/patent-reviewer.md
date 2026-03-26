@@ -8,6 +8,13 @@ This agent identifies issues for attorney review — it does not constitute lega
 
 ---
 
+## Recommended Models
+- **Best:** Claude Opus 4.6 with extended thinking — statutory analysis requires sophisticated legal reasoning
+- **Good:** Claude Sonnet 4.6 — catches most common issues
+- **Not recommended:** Models without strong instruction following — may miss nuanced 101/103 analysis
+
+---
+
 ## Tools
 
 - `patent-review` skill — rejection type analysis framework and MPEP references

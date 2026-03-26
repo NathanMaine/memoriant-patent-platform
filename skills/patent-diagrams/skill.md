@@ -1,6 +1,6 @@
 ---
 name: patent-diagrams
-description: Generate patent-specific diagrams using visual-explainer as rendering engine. Creates system architecture diagrams, flow charts, and claim visualizations with USPTO-compliant formatting.
+description: "v1.0.0 — Generate patent-specific diagrams using visual-explainer as rendering engine. Creates system architecture diagrams, flow charts, and claim visualizations with USPTO-compliant formatting."
 ---
 
 # Patent Diagrams Skill
@@ -226,3 +226,7 @@ To generate patent diagrams, provide:
 4. **Preferred diagram types** — system architecture, flow chart, detail views
 
 The skill will assign reference numerals, generate the diagram content, render via visual-explainer or Mermaid, and produce a numeral index for the specification.
+
+---
+## Version History
+- **v1.0.0** (2026-03-25) — Initial release

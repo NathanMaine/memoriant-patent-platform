@@ -6,6 +6,13 @@ Autonomous patent diagram generation agent that analyzes a patent application dr
 
 ---
 
+## Recommended Models
+- **Best:** Claude Sonnet 4.6 — diagram generation is more structured, doesn't need deep reasoning
+- **Good:** Any model with good Mermaid syntax knowledge
+- **Overkill:** Opus — save the heavy model for drafting and review
+
+---
+
 ## Tools
 
 - `patent-diagrams` skill — reference numeral conventions, diagram types, visual-explainer integration, Mermaid fallback

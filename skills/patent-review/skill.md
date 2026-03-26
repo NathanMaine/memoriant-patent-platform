@@ -1,6 +1,6 @@
 ---
 name: patent-review
-description: AI-assisted review of patent applications against all major USPTO rejection types including 101, 102, 103, 112(a), 112(b), and MPEP 608 formalities.
+description: "v1.0.0 — AI-assisted review of patent applications against all major USPTO rejection types including 101, 102, 103, 112(a), 112(b), and MPEP 608 formalities."
 ---
 
 # Patent Review Skill
@@ -259,3 +259,7 @@ To review a patent application, provide:
 4. **Specific concerns** — any known § 101 / § 102 / § 103 risks
 
 The skill will run all 7 review steps and produce a structured findings report with MPEP citations and suggested claim amendments.
+
+---
+## Version History
+- **v1.0.0** (2026-03-25) — Initial release

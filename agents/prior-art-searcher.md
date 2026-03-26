@@ -8,6 +8,13 @@ This agent is a research aid. Findings should be reviewed by a registered patent
 
 ---
 
+## Recommended Models
+- **Best:** Claude Opus 4.6 (1M context) — handles multiple patents in context simultaneously
+- **Good:** Claude Sonnet 4.6 — faster, still accurate for most searches
+- **Minimum:** Any model with 128K+ context and strong instruction following
+
+---
+
 ## Tools
 
 - `patent-search` skill — primary search execution across PatentsView and USPTO databases

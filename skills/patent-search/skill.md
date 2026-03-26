@@ -1,6 +1,6 @@
 ---
 name: patent-search
-description: Search US patents for prior art using the USPTO 7-step methodology. Supports keyword, CPC classification, inventor, assignee, citation chain, and date range searches across PatentsView and USPTO databases.
+description: "v1.0.0 — Search US patents for prior art using the USPTO 7-step methodology. Supports keyword, CPC classification, inventor, assignee, citation chain, and date range searches across PatentsView and USPTO databases."
 ---
 
 # Patent Search Skill
@@ -220,3 +220,7 @@ To run a patent search, provide:
 4. **Date range** (optional) — default: all dates
 
 The skill will execute the 7-step methodology and return a formatted prior art report.
+
+---
+## Version History
+- **v1.0.0** (2026-03-25) — Initial release

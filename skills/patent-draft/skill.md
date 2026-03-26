@@ -1,6 +1,6 @@
 ---
 name: patent-draft
-description: Generate patent applications in USPTO provisional, non-provisional, or PCT format from an invention description and prior art analysis.
+description: "v1.0.0 — Generate patent applications in USPTO provisional, non-provisional, or PCT format from an invention description and prior art analysis."
 ---
 
 # Patent Draft Skill
@@ -255,3 +255,7 @@ To draft a patent application, provide:
 5. **Preferred embodiment** — the best mode for the invention
 
 The skill will generate a complete draft application with all required sections, layered claims, and a filing checklist.
+
+---
+## Version History
+- **v1.0.0** (2026-03-25) — Initial release

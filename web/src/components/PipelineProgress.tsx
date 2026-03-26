@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { PipelineLoader } from './PipelineLoader';
 
 export type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 
@@ -60,6 +61,9 @@ function StepIcon({ status, index }: { status: StepStatus; index: number }) {
 }
 
 export function PipelineProgress({ steps, progress, currentStage }: PipelineProgressProps) {
+  const runningStep = steps.find((s) => s.status === 'running');
+  const stagesCompleted = steps.filter((s) => s.status === 'completed').length;
+
   return (
     <div className="w-full">
       <div className="flex items-center">
@@ -96,7 +100,17 @@ export function PipelineProgress({ steps, progress, currentStage }: PipelineProg
         ))}
       </div>
 
-      {(progress !== undefined || currentStage) && (
+      {runningStep && (
+        <div className="mt-4">
+          <PipelineLoader
+            stageName={runningStep.label}
+            stagesCompleted={stagesCompleted}
+            totalStages={steps.length}
+          />
+        </div>
+      )}
+
+      {!runningStep && (progress !== undefined || currentStage) && (
         <div className="mt-4">
           {currentStage && (
             <p className="text-sm text-gray-600 mb-1">

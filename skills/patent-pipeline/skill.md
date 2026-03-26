@@ -1,6 +1,6 @@
 ---
 name: patent-pipeline
-description: Run the full patent workflow from invention idea to filing-ready draft. Orchestrates search, analysis, drafting, review, and export in sequence.
+description: "v1.0.0 — Run the full patent workflow from invention idea to filing-ready draft. Orchestrates search, analysis, drafting, review, and export in sequence."
 ---
 
 # Patent Pipeline Skill
@@ -219,3 +219,7 @@ To start the full pipeline, provide:
 6. **Technology area** — for CPC code identification in prior art search
 
 The pipeline will execute all stages sequentially, pausing at the prior art gate and revision stage for human input, and deliver a complete filing-ready package.
+
+---
+## Version History
+- **v1.0.0** (2026-03-25) — Initial release

@@ -8,6 +8,13 @@ This agent produces draft applications for attorney review — final filing shou
 
 ---
 
+## Recommended Models
+- **Best:** Claude Opus 4.6 with extended thinking — complex claim drafting needs deep reasoning
+- **Good:** Claude Sonnet 4.6 — adequate for provisional applications
+- **Not recommended:** Small local models (<30B params) — patent language precision suffers
+
+---
+
 ## Tools
 
 - `patent-draft` skill — drafting templates, filing format requirements, and claim writing patterns
