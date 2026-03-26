@@ -9,6 +9,8 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from api.schemas.errors import ErrorResponse
+
 logger = structlog.get_logger(__name__)
 
 # Paths that skip authentication entirely
@@ -17,6 +19,18 @@ _PUBLIC_PATHS: frozenset[str] = frozenset({"/health", "/docs", "/openapi.json"})
 
 class AuthMiddleware(BaseHTTPMiddleware):
     """Decode a Supabase-compatible HS256 JWT and attach ``user_id`` to request state."""
+
+    def _error(self, request: Request, message: str) -> JSONResponse:
+        """Return a standardised 401 error response."""
+        request_id = getattr(request.state, "request_id", None)
+        return JSONResponse(
+            status_code=401,
+            content=ErrorResponse(
+                error=message,
+                code="AUTH_REQUIRED",
+                request_id=request_id,
+            ).model_dump(),
+        )
 
     async def dispatch(self, request: Request, call_next):
         if request.url.path in _PUBLIC_PATHS:
@@ -27,42 +41,27 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         if not auth_header:
             logger.warning("auth.missing_header", path=request.url.path)
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Authorization header missing"},
-            )
+            return self._error(request, "Authorization header missing")
 
         parts = auth_header.split(" ", 1)
         if len(parts) != 2 or parts[0] != "Bearer":
             logger.warning("auth.bad_scheme", path=request.url.path, header=auth_header[:20])
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Authorization header must use Bearer scheme"},
-            )
+            return self._error(request, "Authorization header must use Bearer scheme")
 
         token = parts[1].strip()
         if not token:
             logger.warning("auth.empty_token", path=request.url.path)
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Authorization header missing"},
-            )
+            return self._error(request, "Authorization header missing")
 
         secret = os.environ.get("JWT_SECRET", "")
         try:
             payload = jwt.decode(token, secret, algorithms=["HS256"])
         except jwt.ExpiredSignatureError:
             logger.warning("auth.token_expired", path=request.url.path)
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Token expired"},
-            )
+            return self._error(request, "Token expired")
         except (jwt.InvalidTokenError, Exception):
             logger.warning("auth.invalid_token", path=request.url.path)
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Invalid token"},
-            )
+            return self._error(request, "Invalid token")
 
         user_id: str = payload.get("sub", "")
         request.state.user_id = user_id

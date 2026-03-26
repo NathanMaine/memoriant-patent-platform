@@ -10,6 +10,8 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from api.schemas.errors import ErrorResponse
+
 logger = structlog.get_logger(__name__)
 
 _WINDOW_SECONDS = 60
@@ -110,9 +112,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 count=len(timestamps),
                 limit=limit,
             )
+            request_id = getattr(request.state, "request_id", None)
             return JSONResponse(
                 status_code=429,
-                content={"detail": f"Rate limit exceeded. Try again in {retry_after}s."},
+                content=ErrorResponse(
+                    error=f"Rate limit exceeded. Try again in {retry_after}s.",
+                    code="RATE_LIMITED",
+                    request_id=request_id,
+                ).model_dump(),
                 headers={"Retry-After": str(retry_after)},
             )
 

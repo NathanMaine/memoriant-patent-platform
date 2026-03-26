@@ -201,4 +201,4 @@ async def test_429_response_body_contains_message():
             )
     assert resp.status_code == 429
     body = resp.json()
-    assert "detail" in body
+    assert "error" in body

@@ -65,7 +65,7 @@ async def test_missing_auth_header_returns_401(auth_env):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/protected")
     assert resp.status_code == 401
-    assert resp.json()["detail"] == "Authorization header missing"
+    assert resp.json()["error"] == "Authorization header missing"
 
 
 @pytest.mark.asyncio
@@ -74,7 +74,7 @@ async def test_invalid_signature_returns_401(auth_env):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/protected", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 401
-    assert resp.json()["detail"] == "Invalid token"
+    assert resp.json()["error"] == "Invalid token"
 
 
 @pytest.mark.asyncio
@@ -83,7 +83,7 @@ async def test_expired_token_returns_401(auth_env):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/protected", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 401
-    assert resp.json()["detail"] == "Token expired"
+    assert resp.json()["error"] == "Token expired"
 
 
 @pytest.mark.asyncio
@@ -91,7 +91,7 @@ async def test_malformed_bearer_prefix_returns_401(auth_env):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.get("/api/protected", headers={"Authorization": "Token abc123"})
     assert resp.status_code == 401
-    assert resp.json()["detail"] == "Authorization header must use Bearer scheme"
+    assert resp.json()["error"] == "Authorization header must use Bearer scheme"
 
 
 @pytest.mark.asyncio
@@ -141,4 +141,4 @@ async def test_garbage_token_returns_401(auth_env):
             "/api/protected", headers={"Authorization": "Bearer not.a.jwt"}
         )
     assert resp.status_code == 401
-    assert resp.json()["detail"] == "Invalid token"
+    assert resp.json()["error"] == "Invalid token"
