@@ -22,6 +22,7 @@ class SearchStrategy(StrEnum):
     INVENTOR = "inventor"
     DATE_RANGE = "date_range"
     BOOLEAN = "boolean"
+    NPL = "npl"
 
 
 class Inventor(BaseModel):

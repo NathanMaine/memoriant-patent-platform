@@ -61,6 +61,7 @@ class SearchRegistry:
         patentsview_enabled: bool = True,
         uspto_odp_enabled: bool = True,
         serpapi_enabled: bool = False,
+        semantic_scholar_enabled: bool = False,
         **kwargs: Any,
     ) -> list[SearchProvider]:
         """Return instantiated providers for each enabled flag.
@@ -72,6 +73,8 @@ class SearchRegistry:
             patentsview_enabled: Include the PatentsView provider.
             uspto_odp_enabled: Include the USPTO ODP provider.
             serpapi_enabled: Include the SerpAPI Google Patents provider.
+            semantic_scholar_enabled: Include the Semantic Scholar NPL provider.
+                Defaults to False (opt-in).
             **kwargs: Extra kwargs forwarded to each provider constructor.
 
         Returns:
@@ -81,6 +84,7 @@ class SearchRegistry:
             ("patentsview", patentsview_enabled),
             ("uspto_odp", uspto_odp_enabled),
             ("serpapi", serpapi_enabled),
+            ("semantic_scholar", semantic_scholar_enabled),
         ]
 
         instances: list[SearchProvider] = []

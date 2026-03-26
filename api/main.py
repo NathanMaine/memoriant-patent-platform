@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from api.middleware.auth import AuthMiddleware
 from api.middleware.correlation import CorrelationMiddleware
 from api.middleware.rate_limit import RateLimitMiddleware
-from api.routes import analyze, config, draft, health, pipeline, search
+from api.routes import analyze, config, draft, examiner, health, pipeline, search
 from api.schemas.errors import ErrorResponse
 
 logger = structlog.get_logger(__name__)
@@ -135,6 +135,7 @@ app.include_router(analyze.router)
 app.include_router(draft.router)
 app.include_router(pipeline.router)
 app.include_router(config.router)
+app.include_router(examiner.router)
 
 # ---------------------------------------------------------------------------
 # Stub routes used by auth and rate-limit tests.
