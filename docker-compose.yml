@@ -6,7 +6,7 @@ services:
     env_file: .env
     depends_on:
       qdrant:
-        condition: service_started
+        condition: service_healthy
     security_opt:
       - no-new-privileges:true
     read_only: true
@@ -14,6 +14,17 @@ services:
       - /tmp
     cap_drop:
       - ALL
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -25,6 +36,99 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2'
+
+  # supabase-db and patent-web are defined here when enabled.
+  # Uncomment and configure as needed:
+  #
+  # supabase-db:
+  #   image: supabase/postgres:15
+  #   environment:
+  #     POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+  #   secrets:
+  #     - postgres_password
+  #   volumes:
+  #     - pg_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 4G
+  #         cpus: '2'
+  #
+  # patent-web:
+  #   build: ./web
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     patent-api:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 20s
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #         cpus: '1'
+  #
+  # TLS between internal containers (multi-host deployments):
+  # Mount CA and service certs as volumes and configure each service to use them.
+  # See docs/TLS_INTERNAL.md for full setup instructions.
+  #
+  # patent-api:
+  #   volumes:
+  #     - ./certs/ca.crt:/certs/ca.crt:ro
+  #     - ./certs/api.crt:/certs/api.crt:ro
+  #     - ./certs/api.key:/certs/api.key:ro
+  #   environment:
+  #     SSL_CA_CERT: /certs/ca.crt
+  #     SSL_CERT: /certs/api.crt
+  #     SSL_KEY: /certs/api.key
+  #
+  # qdrant:
+  #   volumes:
+  #     - ./certs/ca.crt:/certs/ca.crt:ro
+  #     - ./certs/qdrant.crt:/certs/qdrant.crt:ro
+  #     - ./certs/qdrant.key:/certs/qdrant.key:ro
+  #   environment:
+  #     QDRANT__SERVICE__ENABLE_TLS: "true"
+  #     QDRANT__TLS__CERT: /certs/qdrant.crt
+  #     QDRANT__TLS__KEY: /certs/qdrant.key
+  #     QDRANT__TLS__CA_CERT: /certs/ca.crt
+  #
+  # supabase-db:
+  #   volumes:
+  #     - ./certs/ca.crt:/certs/ca.crt:ro
+  #     - ./certs/pg.crt:/certs/pg.crt:ro
+  #     - ./certs/pg.key:/certs/pg.key:ro
+  #   command: >
+  #     postgres
+  #     -c ssl=on
+  #     -c ssl_cert_file=/certs/pg.crt
+  #     -c ssl_key_file=/certs/pg.key
+  #     -c ssl_ca_file=/certs/ca.crt
+
+# secrets:
+#   postgres_password:
+#     external: true
 
 volumes:
   qdrant_data:
+  # pg_data:
